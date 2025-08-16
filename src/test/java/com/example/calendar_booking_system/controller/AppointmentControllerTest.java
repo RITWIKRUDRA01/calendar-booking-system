@@ -1,39 +1,53 @@
 package com.example.calendar_booking_system.controller;
 
+import com.example.calendar_booking_system.entity.Appointment;
+import com.example.calendar_booking_system.entity.CalendarOwner;
+import com.example.calendar_booking_system.entity.Invitee;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.time.LocalDateTime;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(AppointmentController.class)
 public class AppointmentControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
+    private Invitee invitee;
+    private CalendarOwner owner;
+
+    @BeforeEach
+    public void setUp() {
+        // Initialize real objects
+        invitee = new Invitee("Bob Invitee", "bob@example.com");
+        owner = new CalendarOwner("Alice Owner", "alice@example.com");
+
+        // Pass real objects into controller
+        AppointmentController controller = new AppointmentController(invitee, owner);
+
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
 
     @Test
     public void testScheduleAppointment() throws Exception {
-        // Hardcoded values matching what AppointmentController will return
         String startTime = "2025-08-16T14:00:00";
         String subject = "Project Discussion";
-        String inviteeName = "Bob Invitee";
-        String inviteeEmail = "bob@example.com";
-        String ownerName = "Alice Owner";
-        String ownerEmail = "alice@example.com";
 
         mockMvc.perform(post("/api/schedule/appointment")
                         .param("startTime", startTime)
-                        .param("subject", subject))
+                        .param("subject", subject)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.subject").value(subject))
-                .andExpect(jsonPath("$.startTime").exists()) // just check field exists
-                .andExpect(jsonPath("$.invitee.name").value(inviteeName))
-                .andExpect(jsonPath("$.invitee.email").value(inviteeEmail))
-                .andExpect(jsonPath("$.owner.name").value(ownerName))
-                .andExpect(jsonPath("$.owner.email").value(ownerEmail))
+                .andExpect(jsonPath("$.startTime").value(startTime))
+                .andExpect(jsonPath("$.invitee.name").value("Bob Invitee"))
+                .andExpect(jsonPath("$.invitee.email").value("bob@example.com"))
+                .andExpect(jsonPath("$.owner.name").value("Alice Owner"))
+                .andExpect(jsonPath("$.owner.email").value("alice@example.com"))
                 .andExpect(jsonPath("$.id").exists());
     }
 

@@ -1,14 +1,23 @@
 package com.example.calendar_booking_system.entity;
 
-import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import org.springframework.stereotype.Component;;
 
+@Component
 public class Invitee {
     private final String id;      // auto-generated UUID
     private String name;
     private String email;
     private List<Appointment> appointments;  // one-to-many relation
+
+    public Invitee() {
+        this.id = UUID.randomUUID().toString();
+        this.name = "Bob Invitee";
+        this.email = "bob@example.com";
+        this.appointments = new ArrayList<>();
+    }
 
     public Invitee(String name, String email) {
         this.id = UUID.randomUUID().toString();

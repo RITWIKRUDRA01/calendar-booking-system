@@ -1,13 +1,21 @@
 package com.example.calendar_booking_system.entity;
 
 import java.util.UUID;
+import org.springframework.stereotype.Component;;
 
+@Component
 public class CalendarOwner {
     private final String id;     // auto-generated UUID
     private String name;
     private String email;
     private Calendar calendar;   // one-to-one relation
 
+    public CalendarOwner() {
+        this.id = UUID.randomUUID().toString();
+        this.name = "Bob";
+        this.email = "example@com";
+        this.calendar = new Calendar(); // auto-generate calendar
+    }
     public CalendarOwner(String name, String email) {
         this.id = UUID.randomUUID().toString();
         this.name = name;
@@ -45,3 +53,4 @@ public class CalendarOwner {
         this.calendar = calendar;
     }
 }
+

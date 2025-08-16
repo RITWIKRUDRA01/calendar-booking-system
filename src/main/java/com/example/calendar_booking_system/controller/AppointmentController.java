@@ -11,13 +11,13 @@ import java.time.LocalDateTime;
 @RequestMapping("/api/schedule")
 public class AppointmentController {
 
-    // In-memory single Invitee and CalendarOwner for simplicity
     private final Invitee invitee;
     private final CalendarOwner owner;
 
-    public AppointmentController() {
-        this.owner = new CalendarOwner("Alice Owner", "alice@example.com");
-        this.invitee = new Invitee("Bob Invitee", "bob@example.com");
+    // Constructor injection of dependencies
+    public AppointmentController(Invitee invitee, CalendarOwner owner) {
+        this.invitee = invitee;
+        this.owner = owner;
     }
 
     // Endpoint to schedule an appointment
@@ -35,13 +35,13 @@ public class AppointmentController {
         return appt;
     }
 
-    // Endpoint to view invitee info
+    // Endpoint to get Invitee info
     @GetMapping("/invitee")
     public Invitee getInvitee() {
         return invitee;
     }
 
-    // Endpoint to view calendar owner info
+    // Endpoint to get CalendarOwner info
     @GetMapping("/owner")
     public CalendarOwner getOwner() {
         return owner;
