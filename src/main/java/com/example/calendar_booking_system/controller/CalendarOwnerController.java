@@ -10,7 +10,7 @@ import java.util.List;
 @RequestMapping("/api/owners")
 public class CalendarOwnerController {
 
-    // Create a new CalendarOwner
+    // Create a new CalendarOwner-post
     @PostMapping
     public CalendarOwner createOwner(@RequestParam String name, @RequestParam String email) {
         CalendarOwner owner = new CalendarOwner(name, email);
