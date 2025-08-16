@@ -5,8 +5,11 @@ import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.entity.Invitee;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/api/schedule")
@@ -45,6 +48,20 @@ public class AppointmentController {
         // Rule 3: must be on the hour (no minutes/seconds)
         if (start.getMinute() != 0 || start.getSecond() != 0 || start.getNano() != 0) {
             throw new IllegalArgumentException("Appointments must start exactly on the hour (e.g., 10:00, 11:00).");
+        }
+
+        // Rule 4: respect working hours
+        LocalDateTime appointmentDateTime = LocalDateTime.parse(startTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        LocalTime appointmentTime = appointmentDateTime.toLocalTime();
+        if (appointmentTime.isBefore(owner.getWorkDayStart()) ||
+                appointmentTime.isAfter(owner.getWorkDayEnd().minusHours(1))) {
+            throw new IllegalArgumentException("Appointment outside working hours.");
+        }
+
+        // Rule 5: no meetings on off days
+        DayOfWeek day = appointmentDateTime.getDayOfWeek();
+        if (owner.getOffDays().contains(day)) {
+            throw new IllegalArgumentException("Appointments not allowed on off days.");
         }
 
         Appointment appt = new Appointment(start, subject, invitee, owner);

@@ -3,7 +3,7 @@ package com.example.calendar_booking_system.entity;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class Appointment {
+public class Appointment implements Comparable<Appointment>{
     private final String id;           // auto-generated UUID
     private final LocalDateTime startTime;
     private final String subject;      // new field for appointment subject
@@ -42,5 +42,10 @@ public class Appointment {
 
     public CalendarOwner getOwner() {
         return owner;
+    }
+
+    @Override
+    public int compareTo(Appointment other) {
+        return this.startTime.compareTo(other.startTime);
     }
 }

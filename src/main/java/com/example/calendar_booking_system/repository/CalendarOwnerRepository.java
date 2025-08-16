@@ -14,4 +14,11 @@ public class CalendarOwnerRepository {
     public static void save(CalendarOwner owner) {
         owners.add(owner);
     }
+
+    public static CalendarOwner findById(String id) {
+        return owners.stream()
+                .filter(o -> o.getId().equals(id))
+                .findFirst()
+                .orElse(null);
+    }
 }
