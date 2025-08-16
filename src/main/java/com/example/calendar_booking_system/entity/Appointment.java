@@ -6,12 +6,14 @@ import java.util.UUID;
 public class Appointment {
     private final String id;           // auto-generated UUID
     private final LocalDateTime startTime;
+    private final String subject;      // new field for appointment subject
     private final Invitee invitee;     // who created the appointment
     private final CalendarOwner owner; // whose calendar is being booked
 
-    public Appointment(LocalDateTime startTime, Invitee invitee, CalendarOwner owner) {
+    public Appointment(LocalDateTime startTime, String subject, Invitee invitee, CalendarOwner owner) {
         this.id = UUID.randomUUID().toString();
         this.startTime = startTime;
+        this.subject = subject;
         this.invitee = invitee;
         this.owner = owner;
     }
@@ -23,6 +25,10 @@ public class Appointment {
 
     public LocalDateTime getStartTime() {
         return startTime;
+    }
+
+    public String getSubject() {
+        return subject;
     }
 
     // Derived value: endTime = startTime + 1 hour

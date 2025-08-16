@@ -24,4 +24,8 @@ public class Calendar {
     public void setAppointments(List<Appointment> appointments) {
         this.appointments = appointments;
     }
+
+    public void addAppointment(Appointment appointment) {
+        this.appointments.add(appointment);
+    }
 }
