@@ -41,7 +41,7 @@ public class AppointmentController {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime maxLimit = today.plusDays(15).atTime(23, 59);
 
-        // ---------------- Basic validations ----------------
+        // Basic validations
         if (appointmentTime.isBefore(now) || appointmentTime.isAfter(maxLimit)) {
             throw new IllegalArgumentException("Appointments must be within the next 15 days (including today).");
         }
@@ -59,19 +59,13 @@ public class AppointmentController {
             throw new IllegalArgumentException("Appointment outside working hours.");
         }
 
-        // ---------------- Check free slots ----------------
-        List<Integer> freeSlots = calendarService.getFreeSlots(owner, appointmentTime.toLocalDate());
-        if (!freeSlots.contains(time.getHour())) {
-            throw new IllegalArgumentException("Already occupied, try another slot.");
-        }
-
         Appointment appt = new Appointment(appointmentTime, subject, invitee, owner);
 
-        // ---------------- Thread-safe booking ----------------
+        // ---------------- Thread-safe booking (lock everything) ----------------
         lock.lock();
         try {
-            // Double-check in case another thread booked in the meantime
-            freeSlots = calendarService.getFreeSlots(owner, appointmentTime.toLocalDate());
+            // Recalculate free slots **inside lock**
+            List<Integer> freeSlots = calendarService.getFreeSlots(owner, appointmentTime.toLocalDate());
             if (!freeSlots.contains(time.getHour())) {
                 throw new IllegalArgumentException("Already occupied, try another slot.");
             }
@@ -79,6 +73,7 @@ public class AppointmentController {
             // Add appointment
             invitee.addAppointment(appt);
             owner.getCalendar().addAppointment(appt);
+
         } finally {
             lock.unlock();
         }
