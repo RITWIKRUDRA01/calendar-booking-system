@@ -26,10 +26,10 @@ public class AppointmentController {
 
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
-    public AppointmentController(Invitee invitee, CalendarOwner owner,CalendarService calendarservice) {
+    public AppointmentController(Invitee invitee, CalendarOwner owner, CalendarService calendarService) {
         this.invitee = invitee;
         this.owner = owner;
-        this.calendarService = calendarservice;
+        this.calendarService = calendarService;
     }
 
     @PostMapping("/appointment")
@@ -61,12 +61,14 @@ public class AppointmentController {
 
         Appointment appt = new Appointment(appointmentTime, subject, invitee, owner);
 
-        // ---------------- Thread-safe booking (lock everything) ----------------
+        // ---------------- Thread-safe booking ----------------
         lock.lock();
         try {
-            // Recalculate free slots **inside lock**
-            List<Integer> freeSlots = calendarService.getFreeSlots(owner, appointmentTime.toLocalDate());
-            if (!freeSlots.contains(time.getHour())) {
+            // Check for slot availability directly within the lock
+            boolean isSlotTaken = owner.getCalendar().getAppointments().stream()
+                    .anyMatch(app -> app.getStartTime().toLocalDate().equals(appointmentTime.toLocalDate())
+                            && app.getStartTime().getHour() == appointmentTime.getHour());
+            if (isSlotTaken) {
                 throw new IllegalArgumentException("Already occupied, try another slot.");
             }
 

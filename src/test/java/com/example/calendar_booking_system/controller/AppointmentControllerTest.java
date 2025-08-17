@@ -121,7 +121,7 @@ class AppointmentControllerTest {
 
     @Test
     void testConcurrentBookingSameSlot() throws InterruptedException {
-        LocalDateTime apptTime = LocalDateTime.now().plusDays(1).withHour(10).withMinute(0);
+        LocalDateTime apptTime = LocalDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0);
 
         int threadCount = 5;
         CountDownLatch latch = new CountDownLatch(threadCount);
