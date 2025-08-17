@@ -19,10 +19,13 @@ public class InviteeController {
 
     // For simplicity, store a single invitee in memory
     private Invitee invitee;
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM");
-
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
     @Autowired
     private CalendarService calendarService;
+
+    public InviteeController(CalendarService calendarService) {
+        this.calendarService = calendarService;
+    }
 
 
     // Create Invitee

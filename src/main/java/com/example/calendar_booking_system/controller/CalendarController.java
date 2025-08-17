@@ -63,8 +63,14 @@ public class CalendarController {
 
     // ----------------- helper -----------------
     private String buildSummary(Calendar calendar, LocalDate from, LocalDate to) {
-        // group appointments by day within [from, to]
-        Map<LocalDate, List<Appointment>> grouped = calendar.getAppointments().stream()
+        // Take a snapshot to safely iterate
+        Set<Appointment> snapshot;
+        synchronized (calendar.getAppointments()) {
+            snapshot = new TreeSet<>(calendar.getAppointments());
+        }
+
+        // Group appointments by date within [from, to]
+        Map<LocalDate, List<Appointment>> grouped = snapshot.stream()
                 .filter(app -> {
                     LocalDate d = app.getStartTime().toLocalDate();
                     return !d.isBefore(from) && !d.isAfter(to);
@@ -83,18 +89,15 @@ public class CalendarController {
         }
 
         StringBuilder sb = new StringBuilder();
-
         for (Map.Entry<LocalDate, List<Appointment>> entry : grouped.entrySet()) {
             LocalDate date = entry.getKey();
             List<Appointment> apps = entry.getValue();
 
             if (from.equals(to)) {
-                // today case
                 sb.append("Today you have ").append(apps.size())
                         .append(" meeting").append(apps.size() > 1 ? "s" : "")
                         .append(" in the following order:\n");
             } else {
-                // full summary case
                 sb.append("On ").append(date.format(DATE_FORMATTER))
                         .append(" you have ").append(apps.size())
                         .append(" meeting").append(apps.size() > 1 ? "s" : "")

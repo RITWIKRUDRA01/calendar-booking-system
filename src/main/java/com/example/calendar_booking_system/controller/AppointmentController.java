@@ -26,9 +26,10 @@ public class AppointmentController {
 
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
-    public AppointmentController(Invitee invitee, CalendarOwner owner) {
+    public AppointmentController(Invitee invitee, CalendarOwner owner,CalendarService calendarservice) {
         this.invitee = invitee;
         this.owner = owner;
+        this.calendarService = calendarservice;
     }
 
     @PostMapping("/appointment")

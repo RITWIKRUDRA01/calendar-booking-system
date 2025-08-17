@@ -26,10 +26,13 @@ public class CalendarService {
         int startHour = owner.getWorkDayStart().getHour();
         int endHour = owner.getWorkDayEnd().getHour();
 
-        Set<Integer> taken = calendar.getAppointments().stream()
-                .filter(app -> app.getStartTime().toLocalDate().equals(queryDate))
-                .map(app -> app.getStartTime().getHour())
-                .collect(Collectors.toSet());
+        Set<Integer> taken;
+        synchronized (calendar.getAppointments()) {
+            taken = calendar.getAppointments().stream()
+                    .filter(app -> app.getStartTime().toLocalDate().equals(queryDate))
+                    .map(app -> app.getStartTime().getHour())
+                    .collect(Collectors.toSet());
+        }
 
         List<Integer> free = new ArrayList<>();
         for (int h = startHour; h < endHour; h++) {

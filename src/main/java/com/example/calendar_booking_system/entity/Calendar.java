@@ -1,17 +1,17 @@
 package com.example.calendar_booking_system.entity;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.Set;
 import java.util.TreeSet;
 
 public class Calendar {
     private final String id;
-    private final Set<Appointment> appointments;
+    private final Set<Appointment> appointments = Collections.synchronizedSet(new TreeSet<>());
 
     public Calendar() {
         this.id = UUID.randomUUID().toString();
-        this.appointments = new TreeSet<>();
     }
 
     public String getId() {
