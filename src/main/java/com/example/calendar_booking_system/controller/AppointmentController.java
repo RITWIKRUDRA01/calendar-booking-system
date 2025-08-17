@@ -3,13 +3,13 @@ package com.example.calendar_booking_system.controller;
 import com.example.calendar_booking_system.entity.Appointment;
 import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.entity.Invitee;
+import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
 import com.example.calendar_booking_system.service.CalendarService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 @RestController
@@ -17,8 +17,6 @@ import java.util.concurrent.locks.ReentrantLock;
 public class AppointmentController {
 
     private final Invitee invitee;
-    private final CalendarOwner owner;
-
     private final ReentrantLock lock = new ReentrantLock(); // For thread-safe booking
 
     @Autowired
@@ -26,22 +24,29 @@ public class AppointmentController {
 
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
-    public AppointmentController(Invitee invitee, CalendarOwner owner, CalendarService calendarService) {
+    public AppointmentController(Invitee invitee, CalendarService calendarService) {
         this.invitee = invitee;
-        this.owner = owner;
         this.calendarService = calendarService;
     }
 
     @PostMapping("/appointment")
-    public Appointment scheduleAppointment(@RequestParam String startTime,
+    public Appointment scheduleAppointment(@RequestParam String ownerId,
+                                           @RequestParam String startTime,
                                            @RequestParam String subject) {
 
+        // 1. Lookup calendar owner by ID
+        CalendarOwner owner = CalendarOwnerRepository.findById(ownerId);
+        if (owner == null) {
+            throw new RuntimeException("CalendarOwner not found for id: " + ownerId);
+        }
+
+        // 2. Parse start time
         LocalDateTime appointmentTime = LocalDateTime.parse(startTime, ISO_FORMATTER);
         LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime maxLimit = today.plusDays(15).atTime(23, 59);
 
-        // Basic validations
+        // ---------------- Basic validations ----------------
         if (appointmentTime.isBefore(now) || appointmentTime.isAfter(maxLimit)) {
             throw new IllegalArgumentException("Appointments must be within the next 15 days (including today).");
         }
@@ -64,7 +69,7 @@ public class AppointmentController {
         // ---------------- Thread-safe booking ----------------
         lock.lock();
         try {
-            // Check for slot availability directly within the lock
+            // Check for slot availability
             boolean isSlotTaken = owner.getCalendar().getAppointments().stream()
                     .anyMatch(app -> app.getStartTime().toLocalDate().equals(appointmentTime.toLocalDate())
                             && app.getStartTime().getHour() == appointmentTime.getHour());
@@ -88,8 +93,12 @@ public class AppointmentController {
         return invitee;
     }
 
-    @GetMapping("/owner")
-    public CalendarOwner getOwner() {
+    @GetMapping("/owner/{ownerId}")
+    public CalendarOwner getOwner(@PathVariable String ownerId) {
+        CalendarOwner owner = CalendarOwnerRepository.findById(ownerId);
+        if (owner == null) {
+            throw new RuntimeException("CalendarOwner not found for id: " + ownerId);
+        }
         return owner;
     }
 }
