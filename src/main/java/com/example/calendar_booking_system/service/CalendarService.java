@@ -6,6 +6,7 @@ import com.example.calendar_booking_system.entity.Appointment;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,8 +24,13 @@ public class CalendarService {
 
         calendar.cleanupPastAppointments();
 
+        LocalTime start = owner.getWorkDayStart(); // e.g., 09:30
         int startHour = owner.getWorkDayStart().getHour();
         int endHour = owner.getWorkDayEnd().getHour();
+
+        if (start.getMinute() > 0) {
+            startHour++;
+        }
 
         Set<Integer> taken;
         synchronized (calendar.getAppointments()) {

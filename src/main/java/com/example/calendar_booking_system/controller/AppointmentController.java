@@ -1,5 +1,6 @@
 package com.example.calendar_booking_system.controller;
 
+import com.example.calendar_booking_system.datatransferobject.AppointmentRequest;
 import com.example.calendar_booking_system.entity.Appointment;
 import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.entity.Invitee;
@@ -30,18 +31,28 @@ public class AppointmentController {
     }
 
     @PostMapping("/appointment")
-    public Appointment scheduleAppointment(@RequestParam String ownerId,
-                                           @RequestParam String startTime,
-                                           @RequestParam String subject) {
+    public Appointment scheduleAppointment(@RequestBody AppointmentRequest request) {
 
-        // 1. Lookup calendar owner by ID
-        CalendarOwner owner = CalendarOwnerRepository.findById(ownerId);
+        // 1. Lookup calendar owner
+        CalendarOwner owner = CalendarOwnerRepository.findById(request.getOwnerId());
         if (owner == null) {
-            throw new RuntimeException("CalendarOwner not found for id: " + ownerId);
+            throw new RuntimeException("CalendarOwner not found for id: " + request.getOwnerId());
         }
 
-        // 2. Parse start time
-        LocalDateTime appointmentTime = LocalDateTime.parse(startTime, ISO_FORMATTER);
+        // 2. Build LocalDateTime from DTO
+        LocalDateTime appointmentTime;
+        try {
+            appointmentTime = LocalDateTime.of(
+                    request.getYear(),
+                    request.getMonth(),
+                    request.getDay(),
+                    request.getHour(),
+                    0, 0, 0 // minute, second, nano = 0
+            );
+        } catch (DateTimeException e) {
+            throw new IllegalArgumentException("Invalid date/time provided.", e);
+        }
+
         LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime maxLimit = today.plusDays(15).atTime(23, 59);
@@ -64,7 +75,7 @@ public class AppointmentController {
             throw new IllegalArgumentException("Appointment outside working hours.");
         }
 
-        Appointment appt = new Appointment(appointmentTime, subject, invitee, owner);
+        Appointment appt = new Appointment(appointmentTime, request.getSubject(), invitee, owner);
 
         // ---------------- Thread-safe booking ----------------
         lock.lock();

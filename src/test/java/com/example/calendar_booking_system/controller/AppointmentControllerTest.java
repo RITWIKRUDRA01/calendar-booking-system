@@ -1,5 +1,6 @@
 package com.example.calendar_booking_system.controller;
 
+import com.example.calendar_booking_system.datatransferobject.AppointmentRequest;
 import com.example.calendar_booking_system.entity.Appointment;
 import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.entity.Invitee;
@@ -45,10 +46,23 @@ class AppointmentControllerTest {
         controller = new AppointmentController(invitee, calendarService);
     }
 
+    private AppointmentRequest buildRequest(String ownerId, LocalDateTime time, String subject) {
+        AppointmentRequest req = new AppointmentRequest();
+        req.setOwnerId(ownerId);
+        req.setYear(time.getYear());
+        req.setMonth(time.getMonthValue());
+        req.setDay(time.getDayOfMonth());
+        req.setHour(time.getHour());
+        req.setSubject(subject);
+        return req;
+    }
+
     @Test
     void testScheduleAppointmentSuccessful() {
-        LocalDateTime apptTime = LocalDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0);
-        Appointment appt = controller.scheduleAppointment(owner.getId(), apptTime.format(ISO_FORMATTER), "Team Meeting");
+        LocalDateTime apptTime = LocalDateTime.now().plusDays(1)
+                .withHour(10).withMinute(0).withSecond(0).withNano(0);
+
+        Appointment appt = controller.scheduleAppointment(buildRequest(owner.getId(), apptTime, "Team Meeting"));
 
         assertNotNull(appt);
         assertEquals("Team Meeting", appt.getSubject());
@@ -59,18 +73,20 @@ class AppointmentControllerTest {
     @Test
     void testScheduleAppointmentAlreadyOccupied() {
         LocalDateTime apptTime = LocalDateTime.now().plusDays(1).withHour(11).withMinute(0).withSecond(0).withNano(0);
-        controller.scheduleAppointment(owner.getId(), apptTime.format(ISO_FORMATTER), "First Meeting");
+
+        controller.scheduleAppointment(buildRequest(owner.getId(), apptTime, "First Meeting"));
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> controller.scheduleAppointment(owner.getId(), apptTime.format(ISO_FORMATTER), "Second Meeting"));
+                () -> controller.scheduleAppointment(buildRequest(owner.getId(), apptTime, "Second Meeting")));
         assertEquals("Already occupied, try another slot.", ex.getMessage());
     }
 
     @Test
     void testScheduleAppointmentOutsideWorkingHours() {
-        LocalDateTime apptTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0).withSecond(0).withNano(0);
+        LocalDateTime apptTime = LocalDateTime.now().plusDays(1).withHour(8).withMinute(0);
+
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> controller.scheduleAppointment(owner.getId(), apptTime.format(ISO_FORMATTER), "Early Meeting"));
+                () -> controller.scheduleAppointment(buildRequest(owner.getId(), apptTime, "Early Meeting")));
         assertEquals("Appointment outside working hours.", ex.getMessage());
     }
 
@@ -80,30 +96,24 @@ class AppointmentControllerTest {
         LocalDateTime apptTime = nextSaturday.atTime(10, 0);
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> controller.scheduleAppointment(owner.getId(), apptTime.format(ISO_FORMATTER), "Weekend Meeting"));
+                () -> controller.scheduleAppointment(buildRequest(owner.getId(), apptTime, "Weekend Meeting")));
         assertEquals("Appointments not allowed on off days.", ex.getMessage());
-    }
-
-    @Test
-    void testScheduleAppointmentWrongMinute() {
-        LocalDateTime apptTime = LocalDateTime.now().plusDays(1).withHour(10).withMinute(30);
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> controller.scheduleAppointment(owner.getId(), apptTime.format(ISO_FORMATTER), "Invalid Minute Meeting"));
-        assertEquals("Appointments must start exactly on the hour (e.g., 10:00).", ex.getMessage());
     }
 
     @Test
     void testScheduleAppointmentInPast() {
         LocalDateTime pastTime = LocalDateTime.now().minusHours(1);
+
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> controller.scheduleAppointment(owner.getId(), pastTime.format(ISO_FORMATTER), "Past Meeting"));
+                () -> controller.scheduleAppointment(buildRequest(owner.getId(), pastTime, "Past Meeting")));
         assertEquals("Appointments must be within the next 15 days (including today).", ex.getMessage());
     }
 
     @Test
     void testScheduleAppointmentAt15DayLimit() {
         LocalDateTime limitTime = LocalDate.now().plusDays(15).atTime(16, 0);
-        Appointment appt = controller.scheduleAppointment(owner.getId(), limitTime.format(ISO_FORMATTER), "Limit Meeting");
+
+        Appointment appt = controller.scheduleAppointment(buildRequest(owner.getId(), limitTime, "Limit Meeting"));
 
         assertNotNull(appt);
         assertEquals("Limit Meeting", appt.getSubject());
@@ -119,7 +129,7 @@ class AppointmentControllerTest {
 
         Runnable bookTask = () -> {
             try {
-                controller.scheduleAppointment(owner.getId(), apptTime.format(ISO_FORMATTER), "Concurrent Meeting");
+                controller.scheduleAppointment(buildRequest(owner.getId(), apptTime, "Concurrent Meeting"));
                 successCount.incrementAndGet();
             } catch (IllegalArgumentException ignored) {
             } finally {
@@ -133,7 +143,6 @@ class AppointmentControllerTest {
 
         latch.await();
 
-        // Only one thread should succeed
         assertEquals(1, successCount.get());
         assertEquals(1, owner.getCalendar().getAppointments().size());
     }
@@ -141,8 +150,9 @@ class AppointmentControllerTest {
     @Test
     void testOwnerNotFound() {
         LocalDateTime apptTime = LocalDateTime.now().plusDays(1).withHour(10).withMinute(0);
+
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> controller.scheduleAppointment("invalid-id", apptTime.format(ISO_FORMATTER), "Test"));
+                () -> controller.scheduleAppointment(buildRequest("invalid-id", apptTime, "Test")));
         assertEquals("CalendarOwner not found for id: invalid-id", ex.getMessage());
     }
 
@@ -156,7 +166,7 @@ class AppointmentControllerTest {
 
     @Test
     void testGetOwnerInfo() {
-        CalendarOwner returnedOwner = controller.getOwner(owner.getId()); // pass owner ID
+        CalendarOwner returnedOwner = controller.getOwner(owner.getId());
         assertNotNull(returnedOwner);
         assertEquals(owner.getName(), returnedOwner.getName());
         assertEquals(owner.getEmail(), returnedOwner.getEmail());
@@ -165,7 +175,7 @@ class AppointmentControllerTest {
     @Test
     void testGetOwnerInfoNotFound() {
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> controller.getOwner("invalid-id")); // invalid ID
+                () -> controller.getOwner("invalid-id"));
         assertEquals("CalendarOwner not found for id: invalid-id", ex.getMessage());
     }
 }
