@@ -1,5 +1,6 @@
 package com.example.calendar_booking_system.controller;
 
+import com.example.calendar_booking_system.datatransferobject.SlotRequest;
 import com.example.calendar_booking_system.entity.Appointment;
 import com.example.calendar_booking_system.entity.Calendar;
 import com.example.calendar_booking_system.entity.CalendarOwner;
@@ -8,13 +9,16 @@ import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
 import com.example.calendar_booking_system.service.CalendarService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -58,45 +62,71 @@ class InviteeControllerTest {
     void testAvailableSlotsNormalDay() {
         LocalDate date = LocalDate.now().plusDays(1);
 
-        // Add some appointments to occupy slots
+        // occupy some slots
         owner.getCalendar().addAppointment(new Appointment(date.atTime(9, 0), "Meeting1", controller.getInvitee(), owner));
         owner.getCalendar().addAppointment(new Appointment(date.atTime(13, 0), "Meeting2", controller.getInvitee(), owner));
 
-        String result = controller.getAvailableSlots(owner.getId(), date.format(DATE_FORMATTER));
+        SlotRequest req = new SlotRequest(owner.getId(),
+                date.getYear(), date.getMonthValue(), date.getDayOfMonth());
 
-        // Free slots should be all except 9 and 13
-        assertTrue(result.contains("10"));
-        assertTrue(result.contains("11"));
-        assertTrue(result.contains("12"));
-        assertTrue(result.contains("14"));
-        assertFalse(result.contains("9"));
-        assertFalse(result.contains("13"));
+        ResponseEntity<String> response = controller.getAvailableSlots(req);
+        String result = response.getBody();
+        // Extract only the slot part after colon
+        String slotsPart = result.split(":")[1].trim(); // "10, 11, 12, 14, 15, 16"
+        List<String> slots = Arrays.asList(slotsPart.split(", "));
+
+        // Assert present slots
+        assertTrue(slots.contains("10"));
+        assertTrue(slots.contains("11"));
+        assertTrue(slots.contains("12"));
+        assertTrue(slots.contains("14"));
+
+        // Assert absent slots
+        assertFalse(slots.contains("9"));
+        assertFalse(slots.contains("13"));
     }
+
 
     @Test
     void testAvailableSlotsOffDay() {
-        // Pick the next Saturday
         LocalDate nextSaturday = LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.SATURDAY));
-        String dateStr = nextSaturday.format(DATE_FORMATTER);
 
-        String result = controller.getAvailableSlots(owner.getId(), dateStr);
+        SlotRequest req = new SlotRequest(
+                owner.getId(),
+                nextSaturday.getYear(),
+                nextSaturday.getMonthValue(),
+                nextSaturday.getDayOfMonth()
+        );
+
+        ResponseEntity<String> response = controller.getAvailableSlots(req);
+        String result = response.getBody();
         assertEquals("It’s an off day. No appointment possible.", result);
     }
 
     @Test
     void testAvailableSlotsTooFarAhead() {
         LocalDate farDate = LocalDate.now().plusDays(16);
-        String dateStr = farDate.format(DATE_FORMATTER);
 
-        String result = controller.getAvailableSlots(owner.getId(), dateStr);
+        SlotRequest req = new SlotRequest(
+                owner.getId(),
+                farDate.getYear(),
+                farDate.getMonthValue(),
+                farDate.getDayOfMonth()
+        );
+
+        ResponseEntity<String> response = controller.getAvailableSlots(req);
+        String result = response.getBody();
         assertEquals("Too far ahead. Please choose a date within the next 15 days.", result);
     }
 
     @Test
     void testAvailableSlotsInvalidDateFormat() {
-        String invalidDate = "2025-08-17"; // wrong format dd-MM
-        String result = controller.getAvailableSlots(owner.getId(), invalidDate);
-        assertEquals("Invalid date format. Use dd-MM.", result);
+        // Simulate impossible date: month 13, day 40
+        SlotRequest req = new SlotRequest(owner.getId(), 2025, 13, 40);
+
+        ResponseEntity<String> response = controller.getAvailableSlots(req);
+        String result = response.getBody();
+        assertEquals("Invalid date provided. Please provide a valid year, month, and day.", result);
     }
 
     @Test
@@ -108,7 +138,16 @@ class InviteeControllerTest {
             owner.getCalendar().addAppointment(new Appointment(date.atTime(h, 0), "Full", controller.getInvitee(), owner));
         }
 
-        String result = controller.getAvailableSlots(owner.getId(), date.format(DATE_FORMATTER));
-        assertEquals("No free slots available on " + date.format(DATE_FORMATTER) + ".", result);
+        SlotRequest req = new SlotRequest(
+                owner.getId(),
+                date.getYear(),
+                date.getMonthValue(),
+                date.getDayOfMonth()
+        );
+
+        ResponseEntity<String> response = controller.getAvailableSlots(req);
+        String result = response.getBody();
+        assertEquals("No free slots available on " +
+                date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + ".", result);
     }
 }
