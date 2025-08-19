@@ -10,19 +10,20 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CalendarOwnerRepositoryTest {
+    private CalendarOwnerRepository repository;
 
     @BeforeEach
     void setUp() {
         // Clear repository before each test
-        CalendarOwnerRepository.findAll().clear();
+        repository = new CalendarOwnerRepository();
     }
 
     @Test
     void testSaveAndFindById() {
         CalendarOwner owner = new CalendarOwner("Alice", "alice@example.com");
-        CalendarOwnerRepository.save(owner);
+        repository.save(owner);
 
-        CalendarOwner retrieved = CalendarOwnerRepository.findById(owner.getId());
+        CalendarOwner retrieved = repository.findById(owner.getId());
         assertNotNull(retrieved);
         assertEquals(owner.getName(), retrieved.getName());
         assertEquals(owner.getEmail(), retrieved.getEmail());
@@ -30,7 +31,7 @@ class CalendarOwnerRepositoryTest {
 
     @Test
     void testFindByIdNotFound() {
-        CalendarOwner retrieved = CalendarOwnerRepository.findById(UUID.randomUUID().toString());
+        CalendarOwner retrieved = repository.findById(UUID.randomUUID().toString());
         assertNull(retrieved);
     }
 
@@ -39,10 +40,10 @@ class CalendarOwnerRepositoryTest {
         CalendarOwner owner1 = new CalendarOwner("Alice", "alice@example.com");
         CalendarOwner owner2 = new CalendarOwner("Bob", "bob@example.com");
 
-        CalendarOwnerRepository.save(owner1);
-        CalendarOwnerRepository.save(owner2);
+        repository.save(owner1);
+        repository.save(owner2);
 
-        List<CalendarOwner> allOwners = CalendarOwnerRepository.findAll();
+        List<CalendarOwner> allOwners = repository.findAll();
         assertEquals(2, allOwners.size());
         assertTrue(allOwners.contains(owner1));
         assertTrue(allOwners.contains(owner2));

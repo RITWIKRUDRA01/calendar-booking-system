@@ -9,6 +9,7 @@ public class Appointment implements Comparable<Appointment>{
     private final String subject;      // new field for appointment subject
     private final Invitee invitee;     // who created the appointment
     private final CalendarOwner owner; // whose calendar is being booked
+    private final int appointmentDuration = 1;
 
     public Appointment(LocalDateTime startTime, String subject, Invitee invitee, CalendarOwner owner) {
         this.id = UUID.randomUUID().toString();
@@ -33,7 +34,7 @@ public class Appointment implements Comparable<Appointment>{
 
     // Derived value: endTime = startTime + 1 hour
     public LocalDateTime getEndTime() {
-        return startTime.plusHours(1);
+        return startTime.plusHours(appointmentDuration);
     }
 
     public Invitee getInvitee() {

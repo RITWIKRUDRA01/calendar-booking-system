@@ -17,12 +17,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class CalendarOwnerControllerTest {
 
     private CalendarOwnerController controller;
+    private CalendarOwnerRepository repository;
 
     @BeforeEach
     void setUp() {
-        controller = new CalendarOwnerController();
-        // Clear repository before each test
-        CalendarOwnerRepository.findAll().clear();
+        repository = new CalendarOwnerRepository();
+        controller = new CalendarOwnerController(repository);
     }
 
     @Test
@@ -33,7 +33,7 @@ class CalendarOwnerControllerTest {
         assertEquals("alice@example.com", owner.getEmail());
 
         // Owner should be saved in repository
-        assertEquals(1, CalendarOwnerRepository.findAll().size());
+        assertEquals(1, repository.findAll().size());
     }
 
     @Test

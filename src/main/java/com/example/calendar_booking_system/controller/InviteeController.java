@@ -24,11 +24,14 @@ public class InviteeController {
     // For simplicity, store a single invitee in memory
     private Invitee invitee;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-    @Autowired
-    private CalendarService calendarService;
+    private final CalendarOwnerRepository calendarOwnerRepository;
+    private final CalendarService calendarService;
 
-    public InviteeController(CalendarService calendarService) {
+
+    public InviteeController(CalendarService calendarService,
+                             CalendarOwnerRepository calendarOwnerRepository) {
         this.calendarService = calendarService;
+        this.calendarOwnerRepository = calendarOwnerRepository;
     }
 
 
@@ -52,7 +55,7 @@ public class InviteeController {
     // ---------------- Available Slots ----------------
     @PostMapping("/available-slots")
     public ResponseEntity<String> getAvailableSlots(@RequestBody SlotRequest req) {
-        CalendarOwner owner = CalendarOwnerRepository.findById(req.getOwnerId());
+        CalendarOwner owner = calendarOwnerRepository.findById(req.getOwnerId());
         if (owner == null) {
             throw new RuntimeException("CalendarOwner not found");
         }

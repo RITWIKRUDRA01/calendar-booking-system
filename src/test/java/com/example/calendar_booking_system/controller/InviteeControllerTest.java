@@ -27,16 +27,18 @@ class InviteeControllerTest {
     private InviteeController controller;
     private CalendarService calendarService;
     private CalendarOwner owner;
-
+    private CalendarOwnerRepository calendarOwnerRepository;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     @BeforeEach
     void setUp() {
         // Use real CalendarService
-        calendarService = new CalendarService();
+        calendarService = new CalendarService(calendarOwnerRepository);
+
+        calendarOwnerRepository = new CalendarOwnerRepository();
 
         // Initialize controller
-        controller = new InviteeController(calendarService);
+        controller = new InviteeController(calendarService, calendarOwnerRepository);
 
         // Setup a CalendarOwner
         owner = new CalendarOwner("Alice", "alice@example.com");
@@ -44,7 +46,7 @@ class InviteeControllerTest {
         owner.setOffDays(Collections.singleton(DayOfWeek.SATURDAY));
         owner.setCalendar(new Calendar());
 
-        CalendarOwnerRepository.save(owner);
+        calendarOwnerRepository.save(owner);
 
         // Reset the invitee for each test
         controller.createInvitee(new Invitee("Bob", "bob@example.com"));

@@ -25,9 +25,4 @@ public class Calendar {
     public void addAppointment(Appointment appointment) {
         this.appointments.add(appointment);
     }
-
-    public void cleanupPastAppointments() {
-        LocalDateTime now = LocalDateTime.now();
-        appointments.removeIf(app -> !app.getEndTime().isAfter(now));
-    }
 }

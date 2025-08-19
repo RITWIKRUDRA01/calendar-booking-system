@@ -4,6 +4,7 @@ import com.example.calendar_booking_system.entity.Appointment;
 import com.example.calendar_booking_system.entity.Calendar;
 import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
+import com.example.calendar_booking_system.service.CalendarService;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -18,9 +19,17 @@ public class CalendarController {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM");
 
+    private final CalendarService calendarService;
+    private final CalendarOwnerRepository calendarOwnerRepository;
+
+    public CalendarController(CalendarService calendarService, CalendarOwnerRepository calendarOwnerRepository) {
+        this.calendarService = calendarService;
+        this.calendarOwnerRepository=calendarOwnerRepository;
+    }
+
     @GetMapping("/{id}/appointments/summary")
     public String getFullSummary(@PathVariable String id) {
-        CalendarOwner owner = CalendarOwnerRepository.findById(id);
+        CalendarOwner owner = calendarOwnerRepository.findById(id);
         if (owner == null) {
             throw new RuntimeException("Calendar owner not found for id: " + id);
         }
@@ -30,7 +39,7 @@ public class CalendarController {
         }
 
         // cleanup expired
-        calendar.cleanupPastAppointments();
+        calendarService.cleanupPastAppointments(calendar);
 
         if (calendar.getAppointments().isEmpty()) {
             return "You have no upcoming appointments.";
@@ -45,7 +54,7 @@ public class CalendarController {
 
     @GetMapping("/{id}/appointments/today")
     public String getTodaySummary(@PathVariable String id) {
-        CalendarOwner owner = CalendarOwnerRepository.findById(id);
+        CalendarOwner owner = calendarOwnerRepository.findById(id);
         if (owner == null) {
             throw new RuntimeException("Calendar owner not found for id: " + id);
         }
@@ -55,7 +64,7 @@ public class CalendarController {
         }
 
         // cleanup expired
-        calendar.cleanupPastAppointments();
+        calendarService.cleanupPastAppointments(calendar);
 
         LocalDate today = LocalDate.now();
         return buildSummary(calendar, today, today);

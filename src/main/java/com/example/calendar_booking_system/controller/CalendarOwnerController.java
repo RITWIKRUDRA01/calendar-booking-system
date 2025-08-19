@@ -15,24 +15,30 @@ import java.util.Set;
 @RequestMapping("/api/owners")
 public class CalendarOwnerController {
 
+    private final CalendarOwnerRepository calendarOwnerRepository;
+
+    public CalendarOwnerController(CalendarOwnerRepository calendarOwnerRepository) {
+        this.calendarOwnerRepository = calendarOwnerRepository;
+    }
+
     // Create a new CalendarOwner-post
     @PostMapping
     public CalendarOwner createOwner(@RequestParam String name, @RequestParam String email) {
         CalendarOwner owner = new CalendarOwner(name, email);
-        CalendarOwnerRepository.save(owner);
+        calendarOwnerRepository.save(owner);
         return owner;
     }
 
     //  List all CalendarOwners
     @GetMapping
     public List<CalendarOwner> getAllOwners() {
-        return CalendarOwnerRepository.findAll();
+        return calendarOwnerRepository.findAll();
     }
 
     // Get working hours and off days
     @GetMapping("/{id}/settings")
     public Map<String, Object> getSettings(@PathVariable String id) {
-        CalendarOwner owner = CalendarOwnerRepository.findById(id);
+        CalendarOwner owner = calendarOwnerRepository.findById(id);
         if (owner == null) {
             throw new RuntimeException("Owner not found");
         }
@@ -48,7 +54,7 @@ public class CalendarOwnerController {
     public String updateHours(@PathVariable String id,
                               @RequestParam String start,
                               @RequestParam String end) {
-        CalendarOwner owner = CalendarOwnerRepository.findById(id);
+        CalendarOwner owner = calendarOwnerRepository.findById(id);
         if (owner == null) {
             throw new RuntimeException("Owner not found");
         }
@@ -59,7 +65,7 @@ public class CalendarOwnerController {
 
     @PostMapping("/{id}/settings/offdays")
     public String updateOffDays(@PathVariable String id, @RequestBody Set<DayOfWeek> offDays) {
-        CalendarOwner owner = CalendarOwnerRepository.findById(id);
+        CalendarOwner owner = calendarOwnerRepository.findById(id);
         if (owner == null) {
             throw new RuntimeException("Owner not found");
         }

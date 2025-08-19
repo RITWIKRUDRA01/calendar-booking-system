@@ -4,6 +4,7 @@ import com.example.calendar_booking_system.entity.Appointment;
 import com.example.calendar_booking_system.entity.Calendar;
 import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.entity.Invitee;
+import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +26,7 @@ class CalendarServiceTest {
 
     @BeforeEach
     void setUp() {
-        calendarService = new CalendarService();
+        calendarService = new CalendarService(new CalendarOwnerRepository());
         invitee = new Invitee("Bob", "bob@example.com");
 
         owner = new CalendarOwner("Alice", "alice@example.com");

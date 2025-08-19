@@ -3,9 +3,7 @@ package com.example.calendar_booking_system.entity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.stereotype.Component;;
 
-@Component
 public class Invitee {
     private final String id;      // auto-generated UUID
     private String name;

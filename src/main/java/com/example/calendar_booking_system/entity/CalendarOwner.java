@@ -3,11 +3,9 @@ package com.example.calendar_booking_system.entity;
 import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.UUID;
-import org.springframework.stereotype.Component;
 import java.time.DayOfWeek;
 import java.util.Set;
 
-@Component
 public class CalendarOwner {
     private final String id;     // auto-generated UUID
     private String name;

@@ -20,21 +20,26 @@ public class AppointmentController {
     private final Invitee invitee;
     private final ReentrantLock lock = new ReentrantLock(); // For thread-safe booking
 
-    @Autowired
-    private CalendarService calendarService;
+    private final CalendarService calendarService;
+    private final CalendarOwnerRepository calendarOwnerRepository;
 
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
-    public AppointmentController(Invitee invitee, CalendarService calendarService) {
+    @Autowired
+    public AppointmentController(
+            Invitee invitee,
+            CalendarService calendarService,
+            CalendarOwnerRepository calendarOwnerRepository) {
         this.invitee = invitee;
         this.calendarService = calendarService;
+        this.calendarOwnerRepository = calendarOwnerRepository;
     }
 
     @PostMapping("/appointment")
     public Appointment scheduleAppointment(@RequestBody AppointmentRequest request) {
 
         // 1. Lookup calendar owner
-        CalendarOwner owner = CalendarOwnerRepository.findById(request.getOwnerId());
+        CalendarOwner owner = calendarOwnerRepository.findById(request.getOwnerId()); // changed to Optional handling since JpaRepository returns Optional
         if (owner == null) {
             throw new RuntimeException("CalendarOwner not found for id: " + request.getOwnerId());
         }
@@ -47,7 +52,7 @@ public class AppointmentController {
                     request.getMonth(),
                     request.getDay(),
                     request.getHour(),
-                    0, 0, 0 // minute, second, nano = 0
+                    0, 0, 0
             );
         } catch (DateTimeException e) {
             throw new IllegalArgumentException("Invalid date/time provided.", e);
@@ -80,7 +85,6 @@ public class AppointmentController {
         // ---------------- Thread-safe booking ----------------
         lock.lock();
         try {
-            // Check for slot availability
             boolean isSlotTaken = owner.getCalendar().getAppointments().stream()
                     .anyMatch(app -> app.getStartTime().toLocalDate().equals(appointmentTime.toLocalDate())
                             && app.getStartTime().getHour() == appointmentTime.getHour());
@@ -88,7 +92,6 @@ public class AppointmentController {
                 throw new IllegalArgumentException("Already occupied, try another slot.");
             }
 
-            // Add appointment
             invitee.addAppointment(appt);
             owner.getCalendar().addAppointment(appt);
 
@@ -106,7 +109,7 @@ public class AppointmentController {
 
     @GetMapping("/owner/{ownerId}")
     public CalendarOwner getOwner(@PathVariable String ownerId) {
-        CalendarOwner owner = CalendarOwnerRepository.findById(ownerId);
+        CalendarOwner owner = calendarOwnerRepository.findById(ownerId);
         if (owner == null) {
             throw new RuntimeException("CalendarOwner not found for id: " + ownerId);
         }

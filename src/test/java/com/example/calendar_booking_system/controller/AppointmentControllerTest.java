@@ -24,12 +24,15 @@ class AppointmentControllerTest {
     private CalendarService calendarService;
     private Invitee invitee;
     private CalendarOwner owner;
+    private CalendarOwnerRepository ownerRepository;
 
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     @BeforeEach
     void setUp() {
-        calendarService = new CalendarService();
+        ownerRepository = new CalendarOwnerRepository();
+
+        calendarService = new CalendarService(ownerRepository);
 
         // Setup invitee
         invitee = new Invitee("Bob", "bob@example.com");
@@ -40,10 +43,10 @@ class AppointmentControllerTest {
         owner.setOffDays(Collections.singleton(DayOfWeek.SATURDAY));
 
         // Save owner in repository for dynamic lookup
-        CalendarOwnerRepository.save(owner);
+        ownerRepository.save(owner);
 
         // Initialize controller with only invitee and service
-        controller = new AppointmentController(invitee, calendarService);
+        controller = new AppointmentController(invitee, calendarService,ownerRepository);
     }
 
     private AppointmentRequest buildRequest(String ownerId, LocalDateTime time, String subject) {

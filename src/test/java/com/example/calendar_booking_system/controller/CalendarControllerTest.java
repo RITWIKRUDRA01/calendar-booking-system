@@ -5,6 +5,7 @@ import com.example.calendar_booking_system.entity.Calendar;
 import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.entity.Invitee;
 import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
+import com.example.calendar_booking_system.service.CalendarService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,9 +22,13 @@ public class CalendarControllerTest {
     private CalendarOwner owner;
     private Invitee invitee;
 
+    private CalendarOwnerRepository ownerRepository;
+
     @BeforeEach
     void setup() {
-        controller = new CalendarController();
+        ownerRepository = new CalendarOwnerRepository();
+        CalendarService service = new CalendarService(ownerRepository);
+        controller = new CalendarController(service,ownerRepository);
 
         // Create a calendar owner
         owner = new CalendarOwner("Alice", "alice@example.com");
@@ -31,7 +36,7 @@ public class CalendarControllerTest {
         owner.setOffDays(new HashSet<>());
 
         // Add owner to repository
-        CalendarOwnerRepository.save(owner);
+        ownerRepository.save(owner);
 
         // Create an invitee
         invitee = new Invitee("Bob", "bob@example.com");
@@ -54,7 +59,7 @@ public class CalendarControllerTest {
     void testGetTodaySummary_NoAppointments() {
         // Create owner with empty calendar
         CalendarOwner emptyOwner = new CalendarOwner("Charlie", "charlie@example.com");
-        CalendarOwnerRepository.save(emptyOwner);
+        ownerRepository.save(emptyOwner);
 
         String result = controller.getTodaySummary(emptyOwner.getId());
         assertEquals("You have no appointments today.", result);
@@ -71,7 +76,7 @@ public class CalendarControllerTest {
     void testGetFullSummary_NoCalendar() {
         CalendarOwner noCalOwner = new CalendarOwner("Dave", "dave@example.com");
         noCalOwner.setCalendar(null);
-        CalendarOwnerRepository.save(noCalOwner);
+        ownerRepository.save(noCalOwner);
 
         Exception ex = assertThrows(RuntimeException.class, () ->
                 controller.getFullSummary(noCalOwner.getId()));
