@@ -8,6 +8,7 @@ import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
 import com.example.calendar_booking_system.service.CalendarService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -50,7 +51,8 @@ public class CalendarControllerTest {
 
     @Test
     void testGetTodaySummary_WithAppointments() {
-        String result = controller.getTodaySummary(owner.getId());
+        ResponseEntity<?> response = controller.getTodaySummary(owner.getId()); // changed
+        String result = (String) response.getBody(); // unwrap the body
         assertTrue(result.contains("Today you have"));
         assertTrue(result.contains("Meeting 1"));
     }
@@ -61,13 +63,15 @@ public class CalendarControllerTest {
         CalendarOwner emptyOwner = new CalendarOwner("Charlie", "charlie@example.com");
         ownerRepository.save(emptyOwner);
 
-        String result = controller.getTodaySummary(emptyOwner.getId());
-        assertEquals("You have no appointments today.", result);
+        ResponseEntity<?> response = controller.getTodaySummary(emptyOwner.getId()); // changed
+        String result = (String) response.getBody(); // unwrap the body
+        assertEquals("You have no appointments today.", result); // updated message as per controller
     }
 
     @Test
     void testGetFullSummary_UpcomingAppointments() {
-        String result = controller.getFullSummary(owner.getId());
+        ResponseEntity<?> response = controller.getFullSummary(owner.getId()); // changed
+        String result = (String) response.getBody(); // unwrap the body
         assertTrue(result.contains("On"));
         assertTrue(result.contains("Meeting 1") || result.contains("Meeting 2"));
     }

@@ -4,13 +4,11 @@ import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
 
 import java.time.DayOfWeek;
 import java.time.LocalTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,7 +25,13 @@ class CalendarOwnerControllerTest {
 
     @Test
     void testCreateOwner() {
-        CalendarOwner owner = controller.createOwner("Alice", "alice@example.com");
+        Map<String, String> request = new HashMap<>();
+        request.put("name", "Alice");
+        request.put("email", "alice@example.com");
+
+        ResponseEntity<CalendarOwner> response = controller.createOwner(request); // updated
+        CalendarOwner owner = response.getBody(); // updated
+
         assertNotNull(owner.getId());
         assertEquals("Alice", owner.getName());
         assertEquals("alice@example.com", owner.getEmail());
@@ -38,67 +42,87 @@ class CalendarOwnerControllerTest {
 
     @Test
     void testGetAllOwners() {
-        controller.createOwner("Alice", "alice@example.com");
-        controller.createOwner("Bob", "bob@example.com");
+        // update createOwner to pass Map
+        Map<String, String> req1 = Map.of("name", "Alice", "email", "alice@example.com");
+        Map<String, String> req2 = Map.of("name", "Bob", "email", "bob@example.com");
+
+        controller.createOwner(req1);
+        controller.createOwner(req2);
 
         List<CalendarOwner> owners = controller.getAllOwners();
         assertEquals(2, owners.size());
     }
 
     @Test
-    void testGetSettings() {
-        CalendarOwner owner = controller.createOwner("Alice", "alice@example.com");
+    void testGetWorkDetails() {
+        // create owner first
+        Map<String, String> request = Map.of("name", "Alice", "email", "alice@example.com");
+        CalendarOwner owner = controller.createOwner(request).getBody(); // updated
+
+        assertNotNull(owner);
         owner.setWorkHours(LocalTime.of(9, 0), LocalTime.of(17, 0));
         Set<DayOfWeek> offDays = new HashSet<>();
         offDays.add(DayOfWeek.SATURDAY);
         offDays.add(DayOfWeek.SUNDAY);
         owner.setOffDays(offDays);
 
-        Map<String, Object> settings = controller.getSettings(owner.getId());
-        assertEquals(LocalTime.of(9, 0), settings.get("workDayStart"));
-        assertEquals(LocalTime.of(17, 0), settings.get("workDayEnd"));
-        assertEquals(offDays, settings.get("offDays"));
+        ResponseEntity<String> response = controller.getWorkDetails(owner.getId()); // updated
+        String body = response.getBody();
+
+        assertNotNull(body);
+        assertTrue(body.contains("09:00"));
+        assertTrue(body.contains("17:00"));
+        assertTrue(body.contains("SATURDAY"));
+        assertTrue(body.contains("SUNDAY"));
     }
 
     @Test
-    void testGetSettings_OwnerNotFound() {
-        Exception ex = assertThrows(RuntimeException.class, () -> controller.getSettings("invalid-id"));
-        assertEquals("Owner not found", ex.getMessage());
+    void testGetWorkDetails_OwnerNotFound() {
+        Exception ex = assertThrows(RuntimeException.class,
+                () -> controller.getWorkDetails("invalid-id")); // updated method name
+        assertEquals("Owner not found with id: invalid-id", ex.getMessage());
     }
 
     @Test
-    void testUpdateHours() {
-        CalendarOwner owner = controller.createOwner("Alice", "alice@example.com");
-        String response = controller.updateHours(owner.getId(), "08:30", "16:30");
-        assertEquals("Working hours updated.", response);
+    void testUpdateWorkDetails() {
+        // create owner
+        Map<String, String> request = Map.of("name", "Alice", "email", "alice@example.com");
+        CalendarOwner owner = controller.createOwner(request).getBody(); // updated
+
+        assertNotNull(owner);
+
+        // prepare request body for update
+        Map<String, Object> updateRequest = new HashMap<>();
+        updateRequest.put("id", owner.getId());
+        updateRequest.put("start", "08:30");
+        updateRequest.put("end", "16:30");
+        updateRequest.put("offDays", List.of("MONDAY", "FRIDAY"));
+
+        ResponseEntity<String> response = controller.updateWorkDetails(updateRequest); // updated
+        String body = response.getBody();
+
+        assertNotNull(body);
+        assertTrue(body.contains("08:30"));
+        assertTrue(body.contains("16:30"));
+        assertTrue(body.contains("MONDAY"));
+        assertTrue(body.contains("FRIDAY"));
+
+        // verify entity was updated
         assertEquals(LocalTime.of(8, 30), owner.getWorkDayStart());
         assertEquals(LocalTime.of(16, 30), owner.getWorkDayEnd());
+        assertEquals(Set.of(DayOfWeek.MONDAY, DayOfWeek.FRIDAY), owner.getOffDays());
     }
 
     @Test
-    void testUpdateHours_OwnerNotFound() {
-        Exception ex = assertThrows(RuntimeException.class, () -> controller.updateHours("invalid-id", "09:00", "17:00"));
-        assertEquals("Owner not found", ex.getMessage());
-    }
+    void testUpdateWorkDetails_OwnerNotFound() {
+        Map<String, Object> updateRequest = new HashMap<>();
+        updateRequest.put("id", "invalid-id");
+        updateRequest.put("start", "09:00");
+        updateRequest.put("end", "17:00");
+        updateRequest.put("offDays", List.of("MONDAY"));
 
-    @Test
-    void testUpdateOffDays() {
-        CalendarOwner owner = controller.createOwner("Alice", "alice@example.com");
-        Set<DayOfWeek> offDays = new HashSet<>();
-        offDays.add(DayOfWeek.MONDAY);
-        offDays.add(DayOfWeek.FRIDAY);
-
-        String response = controller.updateOffDays(owner.getId(), offDays);
-        assertEquals("Off days updated.", response);
-        assertEquals(offDays, owner.getOffDays());
-    }
-
-    @Test
-    void testUpdateOffDays_OwnerNotFound() {
-        Set<DayOfWeek> offDays = new HashSet<>();
-        offDays.add(DayOfWeek.MONDAY);
-
-        Exception ex = assertThrows(RuntimeException.class, () -> controller.updateOffDays("invalid-id", offDays));
-        assertEquals("Owner not found", ex.getMessage());
+        Exception ex = assertThrows(RuntimeException.class,
+                () -> controller.updateWorkDetails(updateRequest)); // updated
+        assertEquals("Owner not found with id: invalid-id", ex.getMessage());
     }
 }

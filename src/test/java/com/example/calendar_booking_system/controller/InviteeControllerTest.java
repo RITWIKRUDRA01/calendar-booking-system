@@ -9,6 +9,7 @@ import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
 import com.example.calendar_booking_system.service.CalendarService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.time.DayOfWeek;
@@ -54,7 +55,10 @@ class InviteeControllerTest {
 
     @Test
     void testCreateAndGetInvitee() {
-        Invitee invitee = controller.getInvitee();
+        ResponseEntity<?> response = controller.getInvitee(); // changed: now returns ResponseEntity
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        Invitee invitee = (Invitee) response.getBody(); // changed: extract Invitee from body
         assertNotNull(invitee);
         assertEquals("Bob", invitee.getName());
         assertEquals("bob@example.com", invitee.getEmail());
@@ -65,8 +69,10 @@ class InviteeControllerTest {
         LocalDate date = LocalDate.now().plusDays(1);
 
         // occupy some slots
-        owner.getCalendar().addAppointment(new Appointment(date.atTime(9, 0), "Meeting1", controller.getInvitee(), owner));
-        owner.getCalendar().addAppointment(new Appointment(date.atTime(13, 0), "Meeting2", controller.getInvitee(), owner));
+        owner.getCalendar().addAppointment(new Appointment(date.atTime(9, 0), "Meeting1",
+                (Invitee) controller.getInvitee().getBody(), owner)); // changed: get Invitee from ResponseEntity
+        owner.getCalendar().addAppointment(new Appointment(date.atTime(13, 0), "Meeting2",
+                (Invitee) controller.getInvitee().getBody(), owner)); // changed
 
         SlotRequest req = new SlotRequest(owner.getId(),
                 date.getYear(), date.getMonthValue(), date.getDayOfMonth());
@@ -74,7 +80,7 @@ class InviteeControllerTest {
         ResponseEntity<String> response = controller.getAvailableSlots(req);
         String result = response.getBody();
         // Extract only the slot part after colon
-        String slotsPart = result.split(":")[1].trim(); // "10, 11, 12, 14, 15, 16"
+        String slotsPart = result.split(":")[1].trim();
         List<String> slots = Arrays.asList(slotsPart.split(", "));
 
         // Assert present slots
@@ -137,7 +143,8 @@ class InviteeControllerTest {
 
         // Occupy all slots
         for (int h = 9; h < 17; h++) {
-            owner.getCalendar().addAppointment(new Appointment(date.atTime(h, 0), "Full", controller.getInvitee(), owner));
+            owner.getCalendar().addAppointment(new Appointment(date.atTime(h, 0), "Full",
+                    (Invitee) controller.getInvitee().getBody(), owner));
         }
 
         SlotRequest req = new SlotRequest(

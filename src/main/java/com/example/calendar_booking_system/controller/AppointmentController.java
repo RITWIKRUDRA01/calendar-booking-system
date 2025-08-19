@@ -7,10 +7,13 @@ import com.example.calendar_booking_system.entity.Invitee;
 import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
 import com.example.calendar_booking_system.service.CalendarService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 @RestController
@@ -36,15 +39,14 @@ public class AppointmentController {
     }
 
     @PostMapping("/appointment")
-    public Appointment scheduleAppointment(@RequestBody AppointmentRequest request) {
-
-        // 1. Lookup calendar owner
-        CalendarOwner owner = calendarOwnerRepository.findById(request.getOwnerId()); // changed to Optional handling since JpaRepository returns Optional
+    public ResponseEntity<Appointment> scheduleAppointment(@RequestBody AppointmentRequest request) {
+        // ---------------- Lookup calendar owner ----------------
+        CalendarOwner owner = calendarOwnerRepository.findById(request.getOwnerId());
         if (owner == null) {
             throw new RuntimeException("CalendarOwner not found for id: " + request.getOwnerId());
         }
 
-        // 2. Build LocalDateTime from DTO
+        // ---------------- Build LocalDateTime from DTO ----------------
         LocalDateTime appointmentTime;
         try {
             appointmentTime = LocalDateTime.of(
@@ -80,6 +82,7 @@ public class AppointmentController {
             throw new IllegalArgumentException("Appointment outside working hours.");
         }
 
+        // ---------------- Create appointment ----------------
         Appointment appt = new Appointment(appointmentTime, request.getSubject(), invitee, owner);
 
         // ---------------- Thread-safe booking ----------------
@@ -99,20 +102,26 @@ public class AppointmentController {
             lock.unlock();
         }
 
-        return appt;
+        // ---------------- Return appointment in ResponseEntity ----------------
+        return ResponseEntity.ok(appt); // Changed to ResponseEntity for consistent API responses
     }
 
     @GetMapping("/invitee")
-    public Invitee getInvitee() {
-        return invitee;
+    public ResponseEntity<?> getInvitee() {
+        if (invitee == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "No invitee created yet"));
+        }
+        return ResponseEntity.ok(invitee);
     }
 
     @GetMapping("/owner/{ownerId}")
-    public CalendarOwner getOwner(@PathVariable String ownerId) {
+    public ResponseEntity<?> getOwner(@PathVariable String ownerId) {
         CalendarOwner owner = calendarOwnerRepository.findById(ownerId);
         if (owner == null) {
-            throw new RuntimeException("CalendarOwner not found for id: " + ownerId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "CalendarOwner not found for id: " + ownerId));
         }
-        return owner;
+        return ResponseEntity.ok(owner);
     }
 }

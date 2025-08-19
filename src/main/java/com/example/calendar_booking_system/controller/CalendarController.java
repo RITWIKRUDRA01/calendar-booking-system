@@ -5,6 +5,7 @@ import com.example.calendar_booking_system.entity.Calendar;
 import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
 import com.example.calendar_booking_system.service.CalendarService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -13,7 +14,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/calendar")
+@RequestMapping("/api/calendar")
 public class CalendarController {
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
@@ -27,48 +28,52 @@ public class CalendarController {
         this.calendarOwnerRepository=calendarOwnerRepository;
     }
 
+    // Full summary for next 15 days
     @GetMapping("/{id}/appointments/summary")
-    public String getFullSummary(@PathVariable String id) {
+    public ResponseEntity<?> getFullSummary(@PathVariable String id) {
         CalendarOwner owner = calendarOwnerRepository.findById(id);
         if (owner == null) {
-            throw new RuntimeException("Calendar owner not found for id: " + id);
+            throw new RuntimeException("Calendar owner not found for id: " + id); // handled by GlobalExceptionHandler
         }
         Calendar calendar = owner.getCalendar();
         if (calendar == null) {
-            throw new RuntimeException("Calendar not found");
+            throw new RuntimeException("Calendar not found"); // handled by GlobalExceptionHandler
         }
 
-        // cleanup expired
+        // cleanup expired appointments
         calendarService.cleanupPastAppointments(calendar);
 
         if (calendar.getAppointments().isEmpty()) {
-            return "You have no upcoming appointments.";
+            return ResponseEntity.ok("You have no upcoming appointments.");
         }
 
         LocalDate today = LocalDate.now();
         LocalDate cutoff = today.plusDays(15);
 
-        // delegate to helper
-        return buildSummary(calendar, today, cutoff);
+        String summary = buildSummary(calendar, today, cutoff);
+        return ResponseEntity.ok(summary);
     }
 
+    // Summary for today only
     @GetMapping("/{id}/appointments/today")
-    public String getTodaySummary(@PathVariable String id) {
+    public ResponseEntity<?> getTodaySummary(@PathVariable String id) {
         CalendarOwner owner = calendarOwnerRepository.findById(id);
         if (owner == null) {
-            throw new RuntimeException("Calendar owner not found for id: " + id);
+            throw new RuntimeException("Calendar owner not found for id: " + id); // handled by GlobalExceptionHandler
         }
         Calendar calendar = owner.getCalendar();
         if (calendar == null) {
-            throw new RuntimeException("Calendar not found");
+            throw new RuntimeException("Calendar not found"); // handled by GlobalExceptionHandler
         }
 
-        // cleanup expired
+        // cleanup expired appointments
         calendarService.cleanupPastAppointments(calendar);
 
         LocalDate today = LocalDate.now();
-        return buildSummary(calendar, today, today);
+        String summary = buildSummary(calendar, today, today);
+        return ResponseEntity.ok(summary);
     }
+
 
     // ----------------- helper -----------------
     private String buildSummary(Calendar calendar, LocalDate from, LocalDate to) {

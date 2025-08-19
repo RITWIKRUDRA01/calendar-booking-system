@@ -8,11 +8,14 @@ import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
 import com.example.calendar_booking_system.service.CalendarService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -65,8 +68,10 @@ class AppointmentControllerTest {
         LocalDateTime apptTime = LocalDateTime.now().plusDays(1)
                 .withHour(10).withMinute(0).withSecond(0).withNano(0);
 
-        Appointment appt = controller.scheduleAppointment(buildRequest(owner.getId(), apptTime, "Team Meeting"));
-
+        ResponseEntity<Appointment> response = controller.scheduleAppointment(
+                buildRequest(owner.getId(), apptTime, "Team Meeting")
+        );
+        Appointment appt = response.getBody();
         assertNotNull(appt);
         assertEquals("Team Meeting", appt.getSubject());
         assertTrue(invitee.getAppointments().contains(appt));
@@ -115,9 +120,10 @@ class AppointmentControllerTest {
     @Test
     void testScheduleAppointmentAt15DayLimit() {
         LocalDateTime limitTime = LocalDate.now().plusDays(15).atTime(16, 0);
-
-        Appointment appt = controller.scheduleAppointment(buildRequest(owner.getId(), limitTime, "Limit Meeting"));
-
+        ResponseEntity<Appointment> response = controller.scheduleAppointment(
+                buildRequest(owner.getId(), limitTime, "Limit Meeting")
+        );
+        Appointment appt = response.getBody();
         assertNotNull(appt);
         assertEquals("Limit Meeting", appt.getSubject());
     }
@@ -161,7 +167,11 @@ class AppointmentControllerTest {
 
     @Test
     void testGetInviteeInfo() {
-        Invitee returnedInvitee = controller.getInvitee();
+        // ---------------- Call API and unwrap ResponseEntity ----------------
+        ResponseEntity<?> response = controller.getInvitee();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        Invitee returnedInvitee = (Invitee) response.getBody(); // Extract Invitee from body
         assertNotNull(returnedInvitee);
         assertEquals(invitee.getName(), returnedInvitee.getName());
         assertEquals(invitee.getEmail(), returnedInvitee.getEmail());
@@ -169,7 +179,10 @@ class AppointmentControllerTest {
 
     @Test
     void testGetOwnerInfo() {
-        CalendarOwner returnedOwner = controller.getOwner(owner.getId());
+        ResponseEntity<?> response = controller.getOwner(owner.getId());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        CalendarOwner returnedOwner = (CalendarOwner) response.getBody();
         assertNotNull(returnedOwner);
         assertEquals(owner.getName(), returnedOwner.getName());
         assertEquals(owner.getEmail(), returnedOwner.getEmail());
@@ -177,8 +190,10 @@ class AppointmentControllerTest {
 
     @Test
     void testGetOwnerInfoNotFound() {
-        RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> controller.getOwner("invalid-id"));
-        assertEquals("CalendarOwner not found for id: invalid-id", ex.getMessage());
+        ResponseEntity<?> response = controller.getOwner("invalid-id");
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertNotNull(body);
+        assertEquals("CalendarOwner not found for id: invalid-id", body.get("error"));
     }
 }

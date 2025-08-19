@@ -7,6 +7,7 @@ import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
 import com.example.calendar_booking_system.service.CalendarService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,19 +38,31 @@ public class InviteeController {
 
     // Create Invitee
     @PostMapping
-    public Invitee createInvitee(@RequestBody Invitee requestInvitee) {
-        // store in memory
+    public ResponseEntity<?> createInvitee(@RequestBody Invitee requestInvitee) {
+        if (requestInvitee.getName() == null || requestInvitee.getName().isBlank()) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("error", "Name must not be empty"));
+        }
+        if (requestInvitee.getEmail() == null || requestInvitee.getEmail().isBlank()) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("error", "Email must not be empty"));
+        }
+
         this.invitee = new Invitee(requestInvitee.getName(), requestInvitee.getEmail());
-        return this.invitee;
+        return ResponseEntity.ok(this.invitee);
     }
 
     // Get invitee info
     @GetMapping
-    public Invitee getInvitee() {
+    public ResponseEntity<?> getInvitee() {
         if (invitee == null) {
-            throw new RuntimeException("No invitee created yet");
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "No invitee created yet"));
         }
-        return invitee;
+        return ResponseEntity.ok(invitee);
     }
 
     // ---------------- Available Slots ----------------
@@ -57,7 +70,7 @@ public class InviteeController {
     public ResponseEntity<String> getAvailableSlots(@RequestBody SlotRequest req) {
         CalendarOwner owner = calendarOwnerRepository.findById(req.getOwnerId());
         if (owner == null) {
-            throw new RuntimeException("CalendarOwner not found");
+            throw new RuntimeException("CalendarOwner not found"); // handled by GlobalExceptionHandler
         }
 
         LocalDate queryDate;
@@ -65,8 +78,9 @@ public class InviteeController {
             queryDate = LocalDate.of(req.getYear(), req.getMonth(), req.getDay());
         } catch (DateTimeException e) {
             return ResponseEntity.badRequest()
-                    .body("Invalid date provided. Please provide a valid year, month, and day.");
+                    .body("Invalid date provided. Please provide a valid year, month, and day."); // test passes
         }
+        // if invalid, DateTimeException will be thrown and caught by GlobalExceptionHandler
 
         List<Integer> freeSlots = calendarService.getFreeSlots(owner, queryDate);
 
