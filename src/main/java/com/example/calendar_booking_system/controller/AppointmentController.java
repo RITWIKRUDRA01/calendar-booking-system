@@ -19,6 +19,7 @@ import java.util.concurrent.locks.ReentrantLock;
 @RestController
 @RequestMapping("/api/schedule")
 public class AppointmentController {
+    /*
 
     private final Invitee invitee;
     private final ReentrantLock lock = new ReentrantLock(); // For thread-safe booking
@@ -124,4 +125,6 @@ public class AppointmentController {
         }
         return ResponseEntity.ok(owner);
     }
+
+     */
 }
