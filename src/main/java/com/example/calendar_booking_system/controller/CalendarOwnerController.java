@@ -6,7 +6,6 @@ import com.example.calendar_booking_system.service.CalendarService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -23,34 +22,34 @@ public class CalendarOwnerController {
     }
 
     @PostMapping
-    public ResponseEntity<CalendarOwner> createOwner(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> createOwner(@RequestBody Map<String, String> request) {
         String name = request.get("name");
         String email = request.get("email");
-        return ResponseEntity.ok(calendarOwnerService.createOwner(name, email));
+        return calendarOwnerService.createOwner(name, email); // just return service's ResponseEntity
     }
 
     @GetMapping
-    public Set<CalendarOwner> getAllOwners() {
+    public ResponseEntity<?> getAllOwners() {
         return calendarOwnerService.getAllOwners();
     }
 
     @GetMapping("/settings/work-details/{id}")
-    public ResponseEntity<String> getWorkDetails(@PathVariable String id) {
-        return ResponseEntity.ok(calendarOwnerService.getWorkDetails(id));
+    public ResponseEntity<?> getWorkDetails(@PathVariable String id) {
+        return calendarOwnerService.getWorkDetails(id);
     }
 
     @PostMapping("/settings/work-details")
-    public ResponseEntity<String> updateWorkDetails(@RequestBody Map<String, Object> request) {
-        return ResponseEntity.ok(calendarOwnerService.updateWorkDetails(request));
+    public ResponseEntity<?> updateWorkDetails(@RequestBody Map<String, Object> request) {
+        return calendarOwnerService.updateWorkDetails(request);
     }
 
     @GetMapping("/{id}/appointments/summary")
-    public ResponseEntity<String> getFullSummary(@PathVariable String id) {
-        return ResponseEntity.ok(calendarOwnerService.getFullSummary(id));
+    public ResponseEntity<?> getFullSummary(@PathVariable String id) {
+        return calendarOwnerService.getFullSummary(id);
     }
 
     @GetMapping("/{id}/appointments/today")
-    public ResponseEntity<String> getTodaySummary(@PathVariable String id) {
-        return ResponseEntity.ok(calendarOwnerService.getTodaySummary(id));
+    public ResponseEntity<?> getTodaySummary(@PathVariable String id) {
+        return calendarOwnerService.getTodaySummary(id);
     }
 }

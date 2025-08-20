@@ -5,7 +5,7 @@ import com.example.calendar_booking_system.entity.Appointment;
 import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.entity.Invitee;
 import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
-import com.example.calendar_booking_system.service.CalendarService;
+import com.example.calendar_booking_system.service.CalendarServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -16,4 +16,6 @@ public interface InviteeService {
     ResponseEntity<?> bookAppointment(AppointmentRequest request);
 
     ResponseEntity<?> getOwner(String ownerId);
+
+    ResponseEntity<?> getMeetingInvitee();
 }

@@ -6,7 +6,7 @@ import com.example.calendar_booking_system.entity.Invitee;
 import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
 import com.example.calendar_booking_system.service.CalendarOwnerService;
 import com.example.calendar_booking_system.service.CalendarOwnerServiceImpl;
-import com.example.calendar_booking_system.service.CalendarService;
+import com.example.calendar_booking_system.service.CalendarServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +15,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -23,14 +24,14 @@ class CalendarOwnerControllerTest {
     private CalendarOwnerController controller;
     private CalendarOwnerService calendarOwnerService;
     private CalendarOwnerRepository repository;
-    private CalendarService calendarService;
+    private CalendarServiceImpl calendarServiceImpl;
 
     @BeforeEach
     void setUp() {
         repository = new CalendarOwnerRepository();
-        calendarService = new CalendarService(repository);
-        calendarOwnerService = new CalendarOwnerServiceImpl(repository, calendarService);
-        controller = new CalendarOwnerController(calendarOwnerService, calendarService);
+        calendarServiceImpl = new CalendarServiceImpl(repository);
+        calendarOwnerService = new CalendarOwnerServiceImpl(repository, calendarServiceImpl);
+        controller = new CalendarOwnerController(calendarOwnerService, calendarServiceImpl);
     }
 
     // --- Owner CRUD tests ---
@@ -38,9 +39,10 @@ class CalendarOwnerControllerTest {
     @Test
     void testCreateOwner() {
         Map<String, String> request = Map.of("name", "Alice", "email", "alice@example.com");
-        ResponseEntity<CalendarOwner> response = controller.createOwner(request);
-        CalendarOwner owner = response.getBody();
+        ResponseEntity<?> response = controller.createOwner(request);
 
+        assertEquals(200, response.getStatusCodeValue());
+        CalendarOwner owner = (CalendarOwner) response.getBody();
         assertNotNull(owner.getId());
         assertEquals("Alice", owner.getName());
         assertEquals("alice@example.com", owner.getEmail());
@@ -48,24 +50,42 @@ class CalendarOwnerControllerTest {
     }
 
     @Test
+    void testCreateOwner_MissingName() {
+        Map<String, String> request = Map.of("email", "alice@example.com");
+        ResponseEntity<?> response = controller.createOwner(request);
+
+        assertEquals(400, response.getStatusCodeValue());
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertEquals("Name is required", body.get("error"));
+    }
+
+    @Test
     void testGetAllOwners() {
+        // Create two owners via controller
         controller.createOwner(Map.of("name", "Alice", "email", "alice@example.com"));
         controller.createOwner(Map.of("name", "Bob", "email", "bob@example.com"));
 
-        Set<CalendarOwner> owners = controller.getAllOwners();
+        // Get all owners via controller
+        ResponseEntity<?> response = controller.getAllOwners();
+        Set<CalendarOwner> owners = (Set<CalendarOwner>) response.getBody();
+
         assertEquals(2, owners.size());
+
+        Set<String> names = owners.stream().map(CalendarOwner::getName).collect(Collectors.toSet());
+        assertTrue(names.contains("Alice"));
+        assertTrue(names.contains("Bob"));
     }
 
     @Test
     void testGetWorkDetails() {
-        CalendarOwner owner = controller.createOwner(Map.of("name","Alice","email","alice@example.com")).getBody();
+        CalendarOwner owner = (CalendarOwner) controller.createOwner(Map.of("name","Alice","email","alice@example.com")).getBody();
         assertNotNull(owner);
 
         owner.setWorkHours(LocalTime.of(9,0), LocalTime.of(17,0));
         owner.setOffDays(Set.of(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY));
 
-        ResponseEntity<String> response = controller.getWorkDetails(owner.getId());
-        String body = response.getBody();
+        ResponseEntity<?> response = controller.getWorkDetails(owner.getId());
+        String body = (String) response.getBody();
 
         assertNotNull(body);
         assertTrue(body.contains("09:00"));
@@ -76,14 +96,15 @@ class CalendarOwnerControllerTest {
 
     @Test
     void testGetWorkDetails_OwnerNotFound() {
-        Exception ex = assertThrows(RuntimeException.class,
-                () -> controller.getWorkDetails("invalid-id"));
-        assertEquals("Owner not found with id: invalid-id", ex.getMessage());
+        ResponseEntity<?> response = controller.getWorkDetails("invalid-id");
+        assertEquals(404, response.getStatusCodeValue());
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertEquals("Owner not found with id: invalid-id", body.get("error"));
     }
 
     @Test
     void testUpdateWorkDetails() {
-        CalendarOwner owner = controller.createOwner(Map.of("name","Alice","email","alice@example.com")).getBody();
+        CalendarOwner owner = (CalendarOwner) controller.createOwner(Map.of("name","Alice","email","alice@example.com")).getBody();
         assertNotNull(owner);
 
         Map<String, Object> updateRequest = new HashMap<>();
@@ -92,8 +113,8 @@ class CalendarOwnerControllerTest {
         updateRequest.put("end", "16:30");
         updateRequest.put("offDays", List.of("MONDAY", "FRIDAY"));
 
-        ResponseEntity<String> response = controller.updateWorkDetails(updateRequest);
-        String body = response.getBody();
+        ResponseEntity<?> response = controller.updateWorkDetails(updateRequest);
+        String body = (String) response.getBody();
 
         assertNotNull(body);
         assertTrue(body.contains("08:30"));
@@ -114,16 +135,17 @@ class CalendarOwnerControllerTest {
         updateRequest.put("end", "17:00");
         updateRequest.put("offDays", List.of("MONDAY"));
 
-        Exception ex = assertThrows(RuntimeException.class,
-                () -> controller.updateWorkDetails(updateRequest));
-        assertEquals("Owner not found with id: invalid-id", ex.getMessage());
+        ResponseEntity<?> response = controller.updateWorkDetails(updateRequest);
+        assertEquals(404, response.getStatusCodeValue());
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertEquals("Owner not found with id: invalid-id", body.get("error"));
     }
 
     // --- Calendar summary tests ---
 
     @Test
     void testGetTodaySummary_WithAppointments() {
-        CalendarOwner owner = controller.createOwner(Map.of("name","Alice","email","alice@example.com")).getBody();
+        CalendarOwner owner = (CalendarOwner) controller.createOwner(Map.of("name","Alice","email","alice@example.com")).getBody();
         Invitee invitee = new Invitee("Bob","bob@example.com");
         owner.getCalendar().addAppointment(new Appointment(LocalDateTime.now().plusHours(1),
                 "Meeting 1", invitee, owner));
@@ -136,7 +158,7 @@ class CalendarOwnerControllerTest {
 
     @Test
     void testGetTodaySummary_NoAppointments() {
-        CalendarOwner owner = controller.createOwner(Map.of("name","David","email","david@example.com")).getBody();
+        CalendarOwner owner = (CalendarOwner) controller.createOwner(Map.of("name","David","email","david@example.com")).getBody();
         ResponseEntity<?> response = controller.getTodaySummary(owner.getId());
         String result = (String) response.getBody();
         assertEquals("You have no appointments today.", result);
@@ -144,7 +166,7 @@ class CalendarOwnerControllerTest {
 
     @Test
     void testGetFullSummary_UpcomingAppointments() {
-        CalendarOwner owner = controller.createOwner(Map.of("name","Alice","email","alice@example.com")).getBody();
+        CalendarOwner owner = (CalendarOwner) controller.createOwner(Map.of("name","Alice","email","alice@example.com")).getBody();
         Invitee invitee = new Invitee("Bob","bob@example.com");
         owner.getCalendar().addAppointment(new Appointment(LocalDateTime.now().plusHours(1),
                 "Meeting 1", invitee, owner));
@@ -159,18 +181,20 @@ class CalendarOwnerControllerTest {
 
     @Test
     void testGetFullSummary_NoCalendar() {
-        CalendarOwner owner = controller.createOwner(Map.of("name","Eve","email","eve@example.com")).getBody();
+        CalendarOwner owner = (CalendarOwner) controller.createOwner(Map.of("name","Eve","email","eve@example.com")).getBody();
         owner.setCalendar(null);
 
-        Exception ex = assertThrows(RuntimeException.class,
-                () -> controller.getFullSummary(owner.getId()));
-        assertEquals("Calendar not found", ex.getMessage());
+        ResponseEntity<?> response = controller.getFullSummary(owner.getId());
+        assertEquals(404, response.getStatusCodeValue());
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertEquals("Calendar not found for owner with id: " + owner.getId(), body.get("error"));
     }
 
     @Test
     void testGetFullSummary_InvalidId() {
-        Exception ex = assertThrows(RuntimeException.class,
-                () -> controller.getFullSummary("invalid-id"));
-        assertTrue(ex.getMessage().contains("Calendar owner not found"));
+        ResponseEntity<?> response = controller.getFullSummary("invalid-id");
+        assertEquals(404, response.getStatusCodeValue());
+        Map<?, ?> body = (Map<?, ?>) response.getBody();
+        assertTrue(((String) body.get("error")).contains("Calendar owner not found for id: invalid-id"));
     }
 }

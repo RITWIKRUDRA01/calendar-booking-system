@@ -5,12 +5,12 @@ import com.example.calendar_booking_system.entity.Calendar;
 import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.entity.Invitee;
 import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
+import com.example.calendar_booking_system.repository.GenericRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Collections;
@@ -26,7 +26,12 @@ class CalendarServiceTest {
 
     @BeforeEach
     void setUp() {
-        calendarService = new CalendarService(new CalendarOwnerRepository());
+        // Use GenericRepository interface instead of concrete class
+        GenericRepository<CalendarOwner, String> repo = new CalendarOwnerRepository();
+
+        // Inject via interface constructor
+        calendarService = new CalendarServiceImpl(repo);
+
         invitee = new Invitee("Bob", "bob@example.com");
 
         owner = new CalendarOwner("Alice", "alice@example.com");

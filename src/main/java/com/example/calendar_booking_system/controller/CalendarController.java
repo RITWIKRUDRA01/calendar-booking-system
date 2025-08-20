@@ -4,7 +4,7 @@ import com.example.calendar_booking_system.entity.Appointment;
 import com.example.calendar_booking_system.entity.Calendar;
 import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
-import com.example.calendar_booking_system.service.CalendarService;
+import com.example.calendar_booking_system.service.CalendarServiceImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,15 +16,16 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/calendar")
 public class CalendarController {
+    /*
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM");
 
-    private final CalendarService calendarService;
+    private final CalendarServiceImpl calendarServiceImpl;
     private final CalendarOwnerRepository calendarOwnerRepository;
 
-    public CalendarController(CalendarService calendarService, CalendarOwnerRepository calendarOwnerRepository) {
-        this.calendarService = calendarService;
+    public CalendarController(CalendarServiceImpl calendarServiceImpl, CalendarOwnerRepository calendarOwnerRepository) {
+        this.calendarServiceImpl = calendarServiceImpl;
         this.calendarOwnerRepository=calendarOwnerRepository;
     }
 
@@ -41,7 +42,7 @@ public class CalendarController {
         }
 
         // cleanup expired appointments
-        calendarService.cleanupPastAppointments(calendar);
+        calendarServiceImpl.cleanupPastAppointments(calendar);
 
         if (calendar.getAppointments().isEmpty()) {
             return ResponseEntity.ok("You have no upcoming appointments.");
@@ -67,7 +68,7 @@ public class CalendarController {
         }
 
         // cleanup expired appointments
-        calendarService.cleanupPastAppointments(calendar);
+        calendarServiceImpl.cleanupPastAppointments(calendar);
 
         LocalDate today = LocalDate.now();
         String summary = buildSummary(calendar, today, today);
@@ -134,4 +135,6 @@ public class CalendarController {
 
         return sb.toString();
     }
+
+     */
 }

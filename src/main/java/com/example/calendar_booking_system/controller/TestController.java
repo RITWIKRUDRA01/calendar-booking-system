@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/test")
 public class TestController {
+    /*
     // Elementary Get API
     @GetMapping
     public String testGet() {
@@ -22,4 +23,6 @@ public class TestController {
         int sum = num1 + num2;
         return "Sum is: " + sum;
     }
+
+     */
 }

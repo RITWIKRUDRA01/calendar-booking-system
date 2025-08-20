@@ -5,16 +5,12 @@ import com.example.calendar_booking_system.datatransferobject.AppointmentRequest
 import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.entity.Invitee;
 import com.example.calendar_booking_system.entity.Appointment;
-import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
 import com.example.calendar_booking_system.repository.GenericRepository;
-import com.example.calendar_booking_system.service.CalendarService;
-import com.example.calendar_booking_system.service.InviteeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.*;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -23,7 +19,6 @@ import java.util.stream.Collectors;
 public class InviteeServiceImpl implements InviteeService {
 
     private Invitee invitee;
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     private final GenericRepository<CalendarOwner, String> calendarOwnerRepository;
     private final CalendarService calendarService;
@@ -165,5 +160,16 @@ public class InviteeServiceImpl implements InviteeService {
                     .body(Map.of("error", "CalendarOwner not found for id: " + ownerId));
         }
         return ResponseEntity.ok(owner);
+    }
+
+    @Override
+    public ResponseEntity<?> getMeetingInvitee(){
+        if (invitee == null) {
+            // No invitee created yet
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "No invitee created yet"));
+        }
+        // Return the invitee object
+        return ResponseEntity.ok(invitee);
     }
 }

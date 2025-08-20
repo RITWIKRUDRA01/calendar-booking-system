@@ -2,8 +2,9 @@ package com.example.calendar_booking_system.service;
 
 import com.example.calendar_booking_system.entity.Appointment;
 import com.example.calendar_booking_system.entity.CalendarOwner;
-import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
 import com.example.calendar_booking_system.repository.GenericRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -17,72 +18,72 @@ import java.util.stream.Collectors;
 @Service
 public class CalendarOwnerServiceImpl implements CalendarOwnerService {
 
-    private final GenericRepository<CalendarOwner, String> repository;
+    private final GenericRepository<CalendarOwner, String> calendarOwnerRepository;
     private final CalendarService calendarService;
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM");
 
     public CalendarOwnerServiceImpl(GenericRepository<CalendarOwner, String> calendarOwnerRepository,
                                     CalendarService calendarService) {
-        this.repository = calendarOwnerRepository;
+        this.calendarOwnerRepository = calendarOwnerRepository;
         this.calendarService = calendarService;
     }
 
     @Override
-    public CalendarOwner createOwner(String name, String email) {
+    public ResponseEntity<?> createOwner(String name, String email) {
         if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Name is required");
+            return ResponseEntity.badRequest().body(Map.of("error", "Name is required"));
         }
         if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("Email is required");
+            return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
         }
         CalendarOwner owner = new CalendarOwner(name, email);
-        repository.save(owner);
-        return owner;
+        calendarOwnerRepository.save(owner);
+        return ResponseEntity.ok(owner);
     }
 
     @Override
-    public Set<CalendarOwner> getAllOwners() {
-        return new HashSet<>(repository.findAll());
+    public ResponseEntity<?> getAllOwners() {
+        return ResponseEntity.ok(new HashSet<>(calendarOwnerRepository.findAll()));
     }
 
     @Override
-    public String getWorkDetails(String ownerId) {
+    public ResponseEntity<?> getWorkDetails(String ownerId) {
         if (ownerId == null || ownerId.isBlank()) {
-            throw new IllegalArgumentException("Owner ID is required");
+            return ResponseEntity.badRequest().body(Map.of("error", "Owner ID is required"));
         }
-
-        CalendarOwner owner = repository.findById(ownerId);
+        CalendarOwner owner = calendarOwnerRepository.findById(ownerId);
         if (owner == null) {
-            throw new RuntimeException("Owner not found with id: " + ownerId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Owner not found with id: " + ownerId));
         }
-
-        return String.format(
+        return ResponseEntity.ok(String.format(
                 "The work details of owner with id = %s are as follows: " +
                         "Working hours: %s to %s, Off days: %s",
                 ownerId,
                 owner.getWorkDayStart() != null ? owner.getWorkDayStart() : "Not set",
                 owner.getWorkDayEnd() != null ? owner.getWorkDayEnd() : "Not set",
                 (owner.getOffDays() != null && !owner.getOffDays().isEmpty()) ? owner.getOffDays() : "None"
-        );
+        ));
     }
 
     @Override
-    public String updateWorkDetails(Map<String, Object> request) {
+    public ResponseEntity<?> updateWorkDetails(Map<String, Object> request) {
         String ownerId = (String) request.get("id");
         if (ownerId == null || ownerId.isBlank()) {
-            throw new IllegalArgumentException("Owner ID is required");
+            return ResponseEntity.badRequest().body(Map.of("error", "Owner ID is required"));
         }
 
-        CalendarOwner owner = repository.findById(ownerId);
+        CalendarOwner owner = calendarOwnerRepository.findById(ownerId);
         if (owner == null) {
-            throw new RuntimeException("Owner not found with id: " + ownerId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Owner not found with id: " + ownerId));
         }
 
         String startStr = (String) request.get("start");
         String endStr = (String) request.get("end");
         if (startStr == null || endStr == null) {
-            throw new IllegalArgumentException("Both start and end times are required");
+            return ResponseEntity.badRequest().body(Map.of("error", "Both start and end times are required"));
         }
 
         LocalTime start;
@@ -91,11 +92,11 @@ public class CalendarOwnerServiceImpl implements CalendarOwnerService {
             start = LocalTime.parse(startStr);
             end = LocalTime.parse(endStr);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid time format. Use HH:mm (e.g., 09:00)");
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid time format. Use HH:mm (e.g., 09:00)"));
         }
 
         if (!start.isBefore(end)) {
-            throw new IllegalArgumentException("Start time must be before end time");
+            return ResponseEntity.badRequest().body(Map.of("error", "Start time must be before end time"));
         }
         owner.setWorkHours(start, end);
 
@@ -108,58 +109,62 @@ public class CalendarOwnerServiceImpl implements CalendarOwnerService {
                     try {
                         offDays.add(DayOfWeek.valueOf(dayStr.toUpperCase()));
                     } catch (IllegalArgumentException e) {
-                        throw new IllegalArgumentException("Invalid day: " + dayStr + ". Use MONDAY, TUESDAY, etc.");
+                        return ResponseEntity.badRequest().body(Map.of("error", "Invalid day: " + dayStr + ". Use MONDAY, TUESDAY, etc."));
                     }
                 }
             }
         }
         owner.setOffDays(offDays);
 
-        return String.format(
+        return ResponseEntity.ok(String.format(
                 "The work details of owner with id = %s have been updated and are as follows: " +
                         "Working hours: %s to %s, Off days: %s",
                 ownerId, start, end, offDays.isEmpty() ? "None" : offDays
-        );
+        ));
     }
 
     @Override
-    public String getFullSummary(String ownerId) {
-        CalendarOwner owner = repository.findById(ownerId);
+    public ResponseEntity<?> getFullSummary(String ownerId) {
+        CalendarOwner owner = calendarOwnerRepository.findById(ownerId);
         if (owner == null) {
-            throw new RuntimeException("Calendar owner not found for id: " + ownerId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Calendar owner not found for id: " + ownerId));
         }
         Calendar calendar = owner.getCalendar();
         if (calendar == null) {
-            throw new RuntimeException("Calendar not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Calendar not found for owner with id: " + ownerId));
         }
 
         calendarService.cleanupPastAppointments(calendar);
 
         if (calendar.getAppointments().isEmpty()) {
-            return "You have no upcoming appointments.";
+            return ResponseEntity.ok("You have no upcoming appointments.");
         }
 
         LocalDate today = LocalDate.now();
         LocalDate cutoff = today.plusDays(15);
 
-        return buildSummary(calendar, today, cutoff);
+        return ResponseEntity.ok(buildSummary(calendar, today, cutoff));
     }
 
     @Override
-    public String getTodaySummary(String ownerId) {
-        CalendarOwner owner = repository.findById(ownerId);
+    public ResponseEntity<?> getTodaySummary(String ownerId) {
+        CalendarOwner owner = calendarOwnerRepository.findById(ownerId);
         if (owner == null) {
-            throw new RuntimeException("Calendar owner not found for id: " + ownerId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Calendar owner not found for id: " + ownerId));
         }
         Calendar calendar = owner.getCalendar();
         if (calendar == null) {
-            throw new RuntimeException("Calendar not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Calendar not found for owner with id: " + ownerId));
         }
 
         calendarService.cleanupPastAppointments(calendar);
 
         LocalDate today = LocalDate.now();
-        return buildSummary(calendar, today, today);
+        return ResponseEntity.ok(buildSummary(calendar, today, today));
     }
 
     // ----------------- helper -----------------

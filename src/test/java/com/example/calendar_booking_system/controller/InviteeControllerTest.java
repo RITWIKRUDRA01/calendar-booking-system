@@ -6,7 +6,9 @@ import com.example.calendar_booking_system.entity.Appointment;
 import com.example.calendar_booking_system.entity.CalendarOwner;
 import com.example.calendar_booking_system.entity.Invitee;
 import com.example.calendar_booking_system.repository.CalendarOwnerRepository;
+import com.example.calendar_booking_system.repository.GenericRepository;
 import com.example.calendar_booking_system.service.CalendarService;
+import com.example.calendar_booking_system.service.CalendarServiceImpl;
 import com.example.calendar_booking_system.service.InviteeService;
 import com.example.calendar_booking_system.service.InviteeServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class InviteeControllerTest {
 
     private InviteeController controller;
-    private CalendarOwnerRepository repository;
+    private GenericRepository<CalendarOwner, String> calendarOwnerRepository;
     private CalendarService calendarService;
     private InviteeService inviteeService;
     private CalendarOwner owner;
@@ -32,16 +34,16 @@ class InviteeControllerTest {
 
     @BeforeEach
     void setUp() {
-        repository = new CalendarOwnerRepository();
-        calendarService = new CalendarService(repository);
-        inviteeService = new InviteeServiceImpl(calendarService, repository);
+        calendarOwnerRepository = new CalendarOwnerRepository();
+        calendarService = new CalendarServiceImpl(calendarOwnerRepository);
+        inviteeService = new InviteeServiceImpl(calendarService, calendarOwnerRepository);
         controller = new InviteeController(inviteeService);
 
         // Create an owner with working hours 9-17 and off-days Saturday & Sunday
         owner = new CalendarOwner("Alice", "alice@example.com");
         owner.setWorkHours(LocalTime.of(9, 0), LocalTime.of(17, 0));
         owner.setOffDays(Set.of(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY));
-        repository.save(owner);
+        calendarOwnerRepository.save(owner);
 
         // Create an invitee
         invitee = new Invitee("Bob", "bob@example.com");
